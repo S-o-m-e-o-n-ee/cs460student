@@ -26,29 +26,78 @@
         <!-- Works with filling up the whole screen -->
         <div id="scene"></div>
 
-        <script>
+        <script type='module'>
             "use strict";
 
+            import {Pane} from 'https://cdn.jsdelivr.net/npm/tweakpane@latest/dist/tweakpane.min.js'
+
+            let r = new X.renderer3D();
+
+            let ROTATING_TIME = false;
+
+            let gui, cubeGui;
+
+            // Variables to control aspects of the cube of cubes
+            let cubeVars = {
+                cubes: 3,
+                size: 20, 
+                spacing: 10,
+                opacity: 70,
+                rotate: false
+            };
+
             window.onload = function() {
-                // Creates the renderer
-                const r = new X.renderer3D();
+                // Builds the cube of cubes
+                buildTheCubeOfCubes();
+
+                r.onRender = function() {
+                    if (cubeVars.rotate) {
+                        r.camera.rotate([-1, 0]);
+                    };
+                };
+
+                // Adds Gui
+                gui = new Pane();
+                cubeGui = gui.addFolder({title:'Properties', expanded:true});
+
+                let vara = cubeGui.addBinding(cubeVars, 'cubes', {min:1, max:10, step: 1});
+                let varb = cubeGui.addBinding(cubeVars, 'size', {min:1, max:100, step: 1});
+                let varc = cubeGui.addBinding(cubeVars, 'spacing', {min:0, max:100, step: 1});
+                let vard = cubeGui.addBinding(cubeVars, 'opacity', {min:0, max:100, step: 1});
+                let vare = cubeGui.addBinding(cubeVars, 'rotate', {options: {Yes: true, No: false}});
+
+                vara.on('change', function(ev) {
+                    r.destroy();
+                    buildTheCubeOfCubes();
+                });
+                varb.on('change', function(ev) {
+                    r.destroy();
+                    buildTheCubeOfCubes();
+                });
+                varc.on('change', function(ev) {
+                    r.destroy();
+                    buildTheCubeOfCubes();
+                });
+                vard.on('change', function(ev) {
+                    r.destroy();
+                    buildTheCubeOfCubes();
+                });
+            };
+
+            function buildTheCubeOfCubes() {
+                // Clears and remakes the renderer
+                r = new X.renderer3D();
                 r.container = 'scene';
                 r.init();
-                
-                // Variables to control aspects of the cube of cubes (I will make this interactive in browser eventually)
-                let numberOfCubes = 15; // on each axis
-                let size = 20; 
-                let spaceBetweenCubes = 10;
-                let varOpacity = 70; // percent
 
-                // Calculating any other variables needed
-                let spacing = size + spaceBetweenCubes;
-                let gradientIncrement = 1 / (numberOfCubes - 1);
+                // Calculating other variables needed
+                let spacing = cubeVars.size + cubeVars.spacing;
+                let gradientIncrement = 1 / (cubeVars.cubes - 1);
 
                 // Sets the camera starting position
-                r.camera.position = [numberOfCubes * spacing, numberOfCubes * spacing, numberOfCubes * spacing];
+                r.camera.position = [cubeVars.cubes * spacing, cubeVars.cubes * spacing, cubeVars.cubes * spacing];
 
-                // Builds the cude of cubes
+                // Builds the cube of cubes
                 let xPos = 0;
                 for (let i = 0; i <= 1; i += gradientIncrement) {
                     let yPos = 0;
@@ -57,28 +106,41 @@
                         for (let k = 0; k <= 1; k += gradientIncrement) {
 
                             // Creates the current cube
-                            const c = new X.cube()
+                            let new_cube = new X.cube()
 
-                            // Edits possition, size, color, and opacity
-                            c.center = [xPos, yPos, zPos];
-                            c.lengthX = size;
-                            c.lengthY = size;
-                            c.lengthZ = size;
-                            c.color = [k, j, i];
-                            c.opacity = varOpacity / 100;
+                            // Edits possition, cubeVars.size, color, and opacity
+                            new_cube.transform.translateX(xPos);
+                            new_cube.transform.translateY(yPos);
+                            new_cube.transform.translateZ(zPos);
+                            new_cube.lengthX = cubeVars.size;
+                            new_cube.lengthY = cubeVars.size;
+                            new_cube.lengthZ = cubeVars.size;
+                            new_cube.color = [k, j, i];
+                            new_cube.opacity = cubeVars.opacity / 100;
 
                             // Adds the current cube to the renderer
-                            r.add(c);
+                            r.add(new_cube);
                             
                             zPos += spacing;
-                        }
+                        };
                         yPos += spacing;
-                    }
+                    };
                     xPos += spacing;
-                }
+                };
 
-                r.render(); 
-                
+                if (cubeVars.cubes == 1) {
+                    let new_cube = new X.cube()
+                    new_cube.lengthX = cubeVars.size;
+                    new_cube.lengthY = cubeVars.size;
+                    new_cube.lengthZ = cubeVars.size;
+                    new_cube.color = [0.5, 0.5, 0.5];
+                    new_cube.opacity = cubeVars.opacity / 100;
+
+                    // Adds the cube to the renderer
+                    r.add(new_cube);
+                };
+
+                r.render();
             };
         </script>
     </body>
