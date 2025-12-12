@@ -359,10 +359,18 @@
         var controller = renderer.xr.getController( 0 );
         controller.addEventListener( 'selectstart', function () {
 					isSelecting = true;
-                } );
+          
+          raycaster.setFromXRController( controller );
+
+          var intersects = raycaster.intersectObjects(scene.children);
+
+          if ( intersects.length > 0 && intersects[0].object != ground && intersects[0].object != sky) {
+            intersects[0].object.visible = false;
+          };
+        } );
 				controller.addEventListener( 'selectend', function () {
 					isSelecting = false;
-                } );
+        } );
         controller.addEventListener( 'connected', function ( event ) {
 
 					const targetRayMode = event.data.targetRayMode;
@@ -438,25 +446,6 @@
       function animate() {
 
         const delta = clock.getDelta();
-
-        // if (isSelecting) {
-        //   // raycaster.setFromXRController( controller );
-
-        //   // var intersects = raycaster.intersectObjects(scene.children);
-
-        //   // if ( intersects.length > 0 && intersects[0].object != ground && intersects[0].object != sky) {
-        //   //   intersects[0].object.visible = false;
-        //   // };
-
-        //   var geometry = new THREE.BoxGeometry( 2, 2, 2 );
-        //   var material = new THREE.MeshStandardMaterial({ color: 0xffffff });
-        //   cube = new THREE.Mesh( geometry, material );
-
-        //   cube.position.set(0, 0, 10);
-        
-        //   scene.add(cube);
-          
-        // }
 
 				if ( red_mixer ) {
 
