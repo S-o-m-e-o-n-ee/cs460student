@@ -65,7 +65,7 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
 
         renderer.xr.enabled = true; 
-        renderer.xr.setReferenceSpaceType('local-floor');
+        renderer.xr.addEventListener( 'sessionstart', () => baseReferenceSpace = renderer.xr.getReferenceSpace() );
 
         document.body.appendChild(renderer.domElement);
 
@@ -358,10 +358,10 @@
 
         var controller = renderer.xr.getController( 0 );
         controller.addEventListener( 'selectstart', function () {
-					isSelecting = true;
+					controller.userData.isSelecting = true;
         } );
 				controller.addEventListener( 'selectend', function () {
-					isSelecting = false;
+					controller.userData.isSelecting = false;
         } );
         controller.addEventListener( 'connected', function ( event ) {
 
@@ -381,11 +381,43 @@
 				} );
         scene.add(controller);
 
+
+        var controller2 = renderer.xr.getController( 1 );
+        controller2.addEventListener( 'selectstart', function () {
+					controller2.userData.isSelecting = true;
+        } );
+				controller2.addEventListener( 'selectend', function () {
+					controller2.userData.isSelecting = false;
+        } );
+        controller2.addEventListener( 'connected', function ( event ) {
+
+					const targetRayMode = event.data.targetRayMode;
+
+					if ( targetRayMode === 'tracked-pointer' || targetRayMode === 'gaze' ) {
+
+						this.add( buildController( event.data ) );
+
+					}
+
+				} );
+				controller2.addEventListener( 'disconnected', function () {
+
+					this.remove( this.children[ 0 ] );
+
+				} );
+        scene.add(controller2);
+
+
+
         var controllerModelFactory = new XRControllerModelFactory();
 
 				var controllerGrip = renderer.xr.getControllerGrip( 0 );
 				controllerGrip.add( controllerModelFactory.createControllerModel( controllerGrip ) );
 				scene.add( controllerGrip );
+
+        var controllerGrip2 = renderer.xr.getControllerGrip( 1 );
+				controllerGrip2.add( controllerModelFactory.createControllerModel( controllerGrip2 ) );
+				scene.add( controllerGrip2 );
         
         // call animation/rendering loop
         animate();
