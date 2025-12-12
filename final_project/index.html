@@ -379,7 +379,7 @@
 
         var controllerModelFactory = new XRControllerModelFactory();
 
-				controllerGrip = renderer.xr.getControllerGrip( 0 );
+				var controllerGrip = renderer.xr.getControllerGrip( 0 );
 				controllerGrip.add( controllerModelFactory.createControllerModel( controllerGrip ) );
 				scene.add( controllerGrip );
 
