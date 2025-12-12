@@ -26,12 +26,18 @@
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js'; 
 
+    import {VRButton} from 'three/addons/webxr/VRButton.js'; 
+
     var scene, camera, renderer, controls, bubbles;
 
     var red_light, orange_light, yellow_light, green_light, blue_light, purple_light;
     var red_mixer, orange_mixer, yellow_mixer, green_mixer, blue_mixer, purple_mixer;
 
-    var clock;
+    var clock, sky, ground;
+
+    var oldX, oldY = 0;
+
+    var xdir, ydir, zdir;
 
       window.onload = function() {
         
@@ -57,7 +63,12 @@
         renderer = new THREE.WebGLRenderer({antialias:true});
         renderer.setSize(window.innerWidth, window.innerHeight);
 
+        renderer.xr.enabled = true; 
+        renderer.xr.setReferenceSpaceType('local-floor');
+
         document.body.appendChild(renderer.domElement);
+
+        document.body.appendChild(VRButton.createButton(renderer));
 
         // Setup lights
         var ambientLight = new THREE.AmbientLight();
@@ -162,8 +173,8 @@
         var texture = new THREE.TextureLoader().load( 'sky.jpg' );
         var material = new THREE.MeshBasicMaterial( { map: texture,
                                                     side: THREE.BackSide } );
-        var mesh = new THREE.Mesh( geometry, material );
-        scene.add( mesh );
+        sky = new THREE.Mesh( geometry, material );
+        scene.add( sky );
 
 
         // // Configure cube
@@ -175,13 +186,13 @@
         
         // Ground
         geometry = new THREE.PlaneGeometry( 10000, 10000 );
-        material = new THREE.MeshPhysicalMaterial( {
+        material = new THREE.MeshStandardMaterial( {
           color: new THREE.Color(0.5, 0.5, 1.0), roughness: 0, metalness: 0.25
         });
 
         geometry.rotateX( 3 * Math.PI / 2 );
 
-        var ground = new THREE.Mesh( geometry, material );
+        ground = new THREE.Mesh( geometry, material );
 
         ground.translateY(-10);
 
@@ -193,12 +204,12 @@
 
         var radius, x, y, z;
 
-        for (var i = 0; i < 200; i++) {
+        for (var i = 0; i < 4000; i++) {
           radius = Math.random() * 5; 
           
-          x = (Math.random() * 200) - 100;
+          x = (Math.random() * 1000) - 500;
           y = (Math.random() * 30) - 5;
-          z = (Math.random() * 200) - 100;
+          z = (Math.random() * 1000) - 500;
 
           geometry = new THREE.SphereGeometry( radius, 32, 16 );
           material = new THREE.MeshPhysicalMaterial( {
@@ -218,14 +229,11 @@
 
           var sphere = new THREE.Mesh(geometry, material);  
           
-          sphere.position.x = x;
-          sphere.position.y = y;
-          sphere.position.z = z;
+          sphere.position.set(x, y, z);
 
           scene.add(sphere);
           bubbles += [sphere];
         };
-
     
         // Setup interaction
         controls = new OrbitControls(camera, renderer.domElement);
@@ -249,9 +257,7 @@
 
             var intersects = raycaster.intersectObjects(scene.children);
 
-            console.log('Ray to Invisible Plane', intersects[0].point);
-
-            if ( intersects.length > 0 && intersects[0].object != ground && intersects[0].object != mesh) {
+            if ( intersects.length > 0 && intersects[0].object != ground && intersects[0].object != sky) {
               intersects[0].object.visible = false;
             };
 
@@ -259,6 +265,117 @@
             // cube.position.set(intersects[0].point.x, intersects[0].point.y, intersects[0].point.z);
 
           };
+
+
+          renderer.domElement.onmousemove = function( e ){
+          
+            var pixel_coords = new THREE.Vector2( e.clientX, e.clientY );
+
+            var vp_coords = new THREE.Vector2( 
+                        ( pixel_coords.x / window.innerWidth ) * 2 - 1,  //X
+                        -( pixel_coords.y / window.innerHeight ) * 2 + 1) // Y
+
+            var vp_coords_near = new THREE.Vector3( vp_coords.x, vp_coords.y, 0);
+
+            var raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(vp_coords_near, camera);
+
+            var intersects = raycaster.intersectObjects(scene.children);
+
+            if ( intersects.length > 0 && intersects[0].object != ground && intersects[0].object != sky) {
+              if (Math.abs(camera.position.x) > Math.abs(camera.position.y) && Math.abs(camera.position.x) > Math.abs(camera.position.z)) {
+                if (camera.position.x > 0) {
+                  if (oldX - e.clientX < 0) {
+                    intersects[0].object.position.z -= 0.30;
+                  } else {
+                    intersects[0].object.position.z += 0.30;
+                  };
+
+                  if (oldY - e.clientY > 0) {
+                    intersects[0].object.position.y += 0.30;
+                  } else {
+                    intersects[0].object.position.y -= 0.30;
+                  };
+                } else {
+                  if (oldX - e.clientX < 0) {
+                    intersects[0].object.position.z += 0.30;
+                  } else {
+                    intersects[0].object.position.z -= 0.30;
+                  };
+
+                  if (oldY - e.clientY > 0) {
+                    intersects[0].object.position.y += 0.30;
+                  } else {
+                    intersects[0].object.position.y -= 0.30;
+                  };
+                };    
+              };
+
+              if (Math.abs(camera.position.z) > Math.abs(camera.position.x) && Math.abs(camera.position.z) > Math.abs(camera.position.y)) {
+                if (camera.position.z > 0) {
+                  if (oldX - e.clientX < 0) {
+                    intersects[0].object.position.x += 0.30;
+                  } else {
+                    intersects[0].object.position.x -= 0.30;
+                  };
+
+                  if (oldY - e.clientY > 0) {
+                    intersects[0].object.position.y += 0.30;
+                  } else {
+                    intersects[0].object.position.y -= 0.30;
+                  };
+                } else {
+                  if (oldX - e.clientX < 0) {
+                    intersects[0].object.position.x -= 0.30;
+                  } else {
+                    intersects[0].object.position.x += 0.30;
+                  };
+
+                  if (oldY - e.clientY > 0) {
+                    intersects[0].object.position.y += 0.30;
+                  } else {
+                    intersects[0].object.position.y -= 0.30;
+                  };
+                };                
+              };
+            };
+
+            // update cube position
+            // cube.position.set(intersects[0].point.x, intersects[0].point.y, intersects[0].point.z);
+
+            oldX = e.clientX;
+            oldY = e.clientY;
+          };
+
+        xdir = [];
+        ydir = [];
+        zdir = [];
+
+        for (var i = 0; i < scene.children.length; i++){
+          xdir.push(1);
+          ydir.push(1);
+          zdir.push(1);
+        };
+
+        var controller = renderer.xr.getController( 0 );
+        scene.add(controller);
+
+        controller.addEventListener( 'selectend ', function( e ) {
+
+          tempMatrix.identity().extractRotation( controller.matrixWorld );
+
+          var raycaster;
+
+          raycaster.ray.origin.setFromMatrixPosition( controller.matrixWorld );
+          raycaster.ray.direction.set( 0, 0, -1 ).applyMatrix4( tempMatrix ); 
+
+          var intersects = raycaster.intersectObjects(scene.children);
+
+          if ( intersects.length > 0 && intersects[0].object != ground && intersects[0].object != sky) {
+            intersects[0].object.visible = false;
+          };
+          
+        } );
         
         // call animation/rendering loop
         animate();
@@ -271,6 +388,14 @@
 				camera.updateProjectionMatrix();
 
 				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+      function bob(object, x_direction, y_direction, z_direction) {
+
+				object.position.x += 0.025 * Math.random() * x_direction;
+        object.position.y += 0.025 * Math.random() * y_direction;
+        object.position.z += 0.025 * Math.random() * z_direction;
 
 			}
 
@@ -314,9 +439,33 @@
 
 				};
 
-        requestAnimationFrame(animate);
+        for (var i = 0; i < scene.children.length; i++){
+          if (Math.random() < 0.001) {
+            xdir[i] = -xdir[i];
+          };
+          if (Math.random() < 0.001) {
+            ydir[i] = -ydir[i];
+          };
+          if (Math.random() < 0.001) {
+            zdir[i] = -zdir[i];
+          };
 
-        // console.log('another frame');
+          if (Math.abs(scene.children[i].x) > 500) {
+            xdir[i] = scene.children[i].x > 0 ? -1 : 1;
+          };
+          if (scene.children[i].y < 0) {
+            ydir[i] = 1;
+          };
+          if (Math.abs(scene.children[i].z) > 500) {
+            zdir[i] = scene.children[i].z > 0 ? -1 : 1;
+          };
+
+          if (scene.children[i] != ground && scene.children[i] != sky && Math.random() > 0.7){
+            bob(scene.children[i], xdir[i], ydir[i], zdir[i]);
+          };
+        };
+
+        requestAnimationFrame(animate);
 
         // ... update renderer + controls
         controls.update();
