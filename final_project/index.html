@@ -29,12 +29,12 @@
     import {VRButton} from 'three/addons/webxr/VRButton.js';
     import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js'; 
 
-    var scene, camera, renderer, controls, controller;
+    var scene, camera, renderer, controls, controller, raycaster;
 
     var red_light, orange_light, yellow_light, green_light, blue_light, purple_light;
     var red_mixer, orange_mixer, yellow_mixer, green_mixer, blue_mixer, purple_mixer;
 
-    var clock, sky, ground;
+    var clock, sky, ground, isSelecting;
 
     var oldX, oldY = 0;
 
@@ -199,7 +199,7 @@
 
         scene.add( ground );
 
-        
+
         // Bubbles
 
         var radius, x, y, z;
@@ -237,7 +237,7 @@
         // Setup interaction
         controls = new OrbitControls(camera, renderer.domElement);
 
-        var raycaster = new THREE.Raycaster();
+        raycaster = new THREE.Raycaster();
 
         clock = new THREE.Clock();
 
@@ -357,6 +357,12 @@
         };
 
         var controller = renderer.xr.getController( 0 );
+        controller.addEventListener( 'selectstart', function () {
+					isSelecting = true;
+                } );
+				controller.addEventListener( 'selectend', function () {
+					isSelecting = false;
+                } );
         controller.addEventListener( 'connected', function ( event ) {
 
 					const targetRayMode = event.data.targetRayMode;
@@ -380,19 +386,6 @@
 				var controllerGrip = renderer.xr.getControllerGrip( 0 );
 				controllerGrip.add( controllerModelFactory.createControllerModel( controllerGrip ) );
 				scene.add( controllerGrip );
-
-        controller.addEventListener( 'selectstart ', function( ) {
-          var raycaster;
-
-          raycaster.setFromXRController( controller );
-
-          var intersects = raycaster.intersectObjects(scene.children);
-
-          if ( intersects.length > 0 && intersects[0].object != ground && intersects[0].object != sky) {
-            intersects[0].object.visible = false;
-          };
-          
-        } );
         
         // call animation/rendering loop
         animate();
@@ -445,6 +438,17 @@
       function animate() {
 
         const delta = clock.getDelta();
+
+        if (isSelecting) {
+          raycaster.setFromXRController( controller );
+
+          var intersects = raycaster.intersectObjects(scene.children);
+
+          if ( intersects.length > 0 && intersects[0].object != ground && intersects[0].object != sky) {
+            intersects[0].object.visible = false;
+          };
+          
+        }
 
 				if ( red_mixer ) {
 
