@@ -29,7 +29,7 @@
     import {VRButton} from 'three/addons/webxr/VRButton.js';
     import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js'; 
 
-    var scene, camera, renderer, controls, bubbles, controller;
+    var scene, camera, renderer, controls, controller;
 
     var red_light, orange_light, yellow_light, green_light, blue_light, purple_light;
     var red_mixer, orange_mixer, yellow_mixer, green_mixer, blue_mixer, purple_mixer;
@@ -199,9 +199,8 @@
 
         scene.add( ground );
 
+        
         // Bubbles
-
-        bubbles = [];
 
         var radius, x, y, z;
 
@@ -233,7 +232,6 @@
           sphere.position.set(x, y, z);
 
           scene.add(sphere);
-          bubbles += [sphere];
         };
     
         // Setup interaction

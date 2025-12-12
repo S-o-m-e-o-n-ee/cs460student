@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js xr - cubes</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+		<style>
+            html, body { 
+                background-color:#ff9ae7;
+                margin: 0;
+                padding: 0;
+                height: 100%;
+                overflow: hidden !important;  
+            }
+        </style>
+	</head>
+	<body>
+
+        <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+        
+		<script type="importmap">
+			{
+				"imports": {
+                    "three": "https://unpkg.com/three@latest/build/three.module.js",
+                    "three/addons/": "https://unpkg.com/three@latest/examples/jsm/"
+				}
+			}
+		</script>
+
+		<script type="module">
+
+            import * as THREE from 'three';
+
+            import { OrbitControls } from 'three/addons/controls/OrbitControls.js'; 
+
+            import { VRButton } from 'three/addons/webxr/VRButton.js';
+			import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
+
+			const clock = new THREE.Clock();
+
+			let container;
+			let camera, scene, raycaster, renderer, controls;
+
+			let sky, ground;
+
+			let controller, controllerGrip;
+
+            var oldX, oldY = 0;
+
+            var xdir, ydir, zdir;
+
+            var isSelecting = false;
+
+			// init();
+
+			// function init() {
+            window.onload = function() {
+                window.THREE = THREE;
+
+
+				container = document.createElement( 'div' );
+				document.body.appendChild( container );
+
+				scene = new THREE.Scene();
+
+				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1000 );
+                camera.position.set(0, 0, 1);
+				scene.add( camera );
+
+
+                var ambientLight = new THREE.AmbientLight();
+                scene.add(ambientLight);
+
+                var light = new THREE.DirectionalLight(0xffffff, 3.0);
+                light.position.set(10, 100, 10);
+                scene.add(light);
+
+
+                var geometry = new THREE.SphereGeometry( 500, 60, 40 );
+        
+                var texture = new THREE.TextureLoader().load( 'sky.jpg' );
+                var material = new THREE.MeshBasicMaterial( { 
+                    map: texture,
+                    side: THREE.BackSide 
+                } );
+                sky = new THREE.Mesh( geometry, material );
+                scene.add( sky );
+
+
+                geometry = new THREE.PlaneGeometry( 10000, 10000 );
+                material = new THREE.MeshStandardMaterial( {
+                    color: new THREE.Color(0.5, 0.5, 1.0), 
+                    roughness: 0, 
+                    metalness: 0.25
+                });
+
+                geometry.rotateX( 3 * Math.PI / 2 );
+
+                ground = new THREE.Mesh( geometry, material );
+
+                ground.translateY(-10);
+
+                scene.add( ground );
+
+
+
+				// Bubbles
+
+                var radius, x, y, z;
+
+                for (var i = 0; i < 4000; i++) {
+                    radius = Math.random() * 5; 
+                    
+                    x = (Math.random() * 1000) - 500;
+                    y = (Math.random() * 30) - 5;
+                    z = (Math.random() * 1000) - 500;
+
+                    geometry = new THREE.SphereGeometry( radius, 32, 16 );
+                    material = new THREE.MeshPhysicalMaterial( {
+                        color: new THREE.Color(0.9, 0.9, 1.0), 
+                        transmission: 1.05 , 
+                        thickness: -0.5 , 
+                        roughness: 0 , 
+                        iridescence: 1 , 
+                        iridescenceIOR: 1 ,
+                        iridescenceThicknessRange: [0, 1200] ,
+                        clearcoat: 1 ,
+                        clearcoatRoughness: 0 , 
+                        envMapIntensity: 1.5, 
+                        transparent: true, 
+                        opacity: 0.5
+                    });
+
+                    var sphere = new THREE.Mesh(geometry, material);  
+                    
+                    sphere.position.set(x, y, z);
+
+                    scene.add(sphere);
+                };
+
+
+				raycaster = new THREE.Raycaster();
+
+
+				renderer = new THREE.WebGLRenderer( { antialias: true, forceWebGL: true, outputBufferType: THREE.UnsignedByteType, multiview: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+                renderer.setAnimationLoop( animate );
+				renderer.xr.enabled = true;
+				container.appendChild( renderer.domElement );
+
+                controls = new OrbitControls(camera, renderer.domElement);
+
+				//
+
+				var controller = renderer.xr.getController( 0 );
+				controller.addEventListener( 'selectstart', function () {
+					isSelecting = true;
+                } );
+				controller.addEventListener( 'selectend', function () {
+					isSelecting = false;
+                } );
+				controller.addEventListener( 'connected', function ( event ) {
+
+					const targetRayMode = event.data.targetRayMode;
+
+					if ( targetRayMode === 'tracked-pointer' || targetRayMode === 'gaze' ) {
+
+						this.add( buildController( event.data ) );
+
+					}
+
+				} );
+				controller.addEventListener( 'disconnected', function () {
+
+					this.remove( this.children[ 0 ] );
+
+				} );
+				scene.add( controller );
+
+				const controllerModelFactory = new XRControllerModelFactory();
+
+				var controllerGrip = renderer.xr.getControllerGrip( 0 );
+				controllerGrip.add( controllerModelFactory.createControllerModel( controllerGrip ) );
+				scene.add( controllerGrip );
+
+				window.addEventListener( 'resize', onWindowResize );
+
+				//
+
+				document.body.appendChild( VRButton.createButton( renderer ) );
+			}
+
+			function buildController( data ) {
+
+				let geometry, material;
+
+				switch ( data.targetRayMode ) {
+
+					case 'tracked-pointer':
+
+						geometry = new THREE.BufferGeometry();
+						geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0, 0, 0, - 500 ], 3 ) );
+						geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( [ 0.5, 0.5, 0.5, 0, 0, 0 ], 3 ) );
+
+						material = new THREE.LineBasicMaterial( { vertexColors: true, blending: THREE.AdditiveBlending } );
+
+						return new THREE.Line( geometry, material );
+
+					case 'gaze':
+
+						geometry = new THREE.RingGeometry( 0.02, 0.04, 32 ).translate( 0, 0, - 1 );
+						material = new THREE.MeshBasicMaterial( { opacity: 0.5, transparent: true } );
+						return new THREE.Mesh( geometry, material );
+
+				}
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			//
+
+			function animate() {
+
+				const delta = clock.getDelta() * 60;
+
+				if ( isSelecting === true ) {
+
+					// const cube = room.children[ 0 ];
+					// room.remove( cube );
+
+					// cube.position.copy( controller.position );
+					// cube.userData.velocity.x = ( Math.random() - 0.5 ) * 0.02 * delta;
+					// cube.userData.velocity.y = ( Math.random() - 0.5 ) * 0.02 * delta;
+					// cube.userData.velocity.z = ( Math.random() * 0.01 - 0.05 ) * delta;
+					// cube.userData.velocity.applyQuaternion( controller.quaternion );
+					// room.add( cube );
+
+                    var geometry = new THREE.BoxGeometry( 2, 2, 2 );
+                    var material = new THREE.MeshStandardMaterial({ color: 0xffffff });
+                    cube = new THREE.Mesh( geometry, material );
+
+                    cube.position.set(0, 0, 10);
+        
+                    scene.add(cube);
+
+                    // find intersections
+
+                    raycaster.setFromXRController( controller );
+
+                    const intersects = raycaster.intersectObjects( scene.children, false );
+
+                    if ( intersects.length > 0 && intersects[0].object != ground && intersects[0].object != sky && isSelecting) {
+                        intersects[0].object.visible = false;
+                    } 
+
+				}
+
+                controls.update();
+                renderer.render( scene, camera );
+
+			}
+
+		</script>
+	</body>
+</html>
