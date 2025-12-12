@@ -359,14 +359,6 @@
         var controller = renderer.xr.getController( 0 );
         controller.addEventListener( 'selectstart', function () {
 					isSelecting = true;
-          
-          raycaster.setFromXRController( controller );
-
-          var intersects = raycaster.intersectObjects(scene.children);
-
-          if ( intersects.length > 0 && intersects[0].object != ground && intersects[0].object != sky) {
-            intersects[0].object.visible = false;
-          };
         } );
 				controller.addEventListener( 'selectend', function () {
 					isSelecting = false;
@@ -446,6 +438,27 @@
       function animate() {
 
         const delta = clock.getDelta();
+
+        if (controller) {
+          raycaster.setFromXRController( controller );
+        } else {
+          var pixel_coords = new THREE.Vector2( oldX, oldY );
+
+          var vp_coords = new THREE.Vector2( 
+                      ( pixel_coords.x / window.innerWidth ) * 2 - 1,  //X
+                      -( pixel_coords.y / window.innerHeight ) * 2 + 1) // Y
+
+          var vp_coords_near = new THREE.Vector3( vp_coords.x, vp_coords.y, 0);
+
+          raycaster.setFromCamera(vp_coords_near, camera);
+        }
+        
+
+				const intersects = raycaster.intersectObjects( scene.children, false );
+
+				if ( intersects.length > 0 && intersects[0].object != ground && intersects[0].object != sky) {
+          intersects[0].object.visible = false;
+				}
 
 				if ( red_mixer ) {
 
