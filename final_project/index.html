@@ -377,6 +377,12 @@
 				} );
         scene.add(controller);
 
+        var controllerModelFactory = new XRControllerModelFactory();
+
+				controllerGrip = renderer.xr.getControllerGrip( 0 );
+				controllerGrip.add( controllerModelFactory.createControllerModel( controllerGrip ) );
+				scene.add( controllerGrip );
+
         controller.addEventListener( 'selectstart ', function( ) {
 
           tempMatrix.identity().extractRotation( controller.matrixWorld );
