@@ -38,7 +38,7 @@
 
     var clock, sky, ground, isSelecting;
 
-    var oldX, oldY = 0;
+    var oldX, oldY, oldZ = 0;
 
     var xdir, ydir, zdir;
 
@@ -270,7 +270,7 @@
 
             var intersects = raycaster.intersectObjects(bubbles.children);
 
-            if ( intersects.length > 0 && intersects[0].object != ground && intersects[0].object != sky) {
+            if ( intersects.length > 0 ) {
               intersects[0].object.visible = false;
             };
 
@@ -294,69 +294,16 @@
 
             var intersects = raycaster.intersectObjects(bubbles.children);
 
-            if ( intersects.length > 0 && intersects[0].object != ground && intersects[0].object != sky) {
-              if (Math.abs(camera.position.x) > Math.abs(camera.position.y) && Math.abs(camera.position.x) > Math.abs(camera.position.z)) {
-                if (camera.position.x > 0) {
-                  if (oldX - e.clientX < 0) {
-                    intersects[0].object.position.z -= 0.30;
-                  } else {
-                    intersects[0].object.position.z += 0.30;
-                  };
+            if ( intersects.length > 0 ) {
 
-                  if (oldY - e.clientY > 0) {
-                    intersects[0].object.position.y += 0.30;
-                  } else {
-                    intersects[0].object.position.y -= 0.30;
-                  };
-                } else {
-                  if (oldX - e.clientX < 0) {
-                    intersects[0].object.position.z += 0.30;
-                  } else {
-                    intersects[0].object.position.z -= 0.30;
-                  };
-
-                  if (oldY - e.clientY > 0) {
-                    intersects[0].object.position.y += 0.30;
-                  } else {
-                    intersects[0].object.position.y -= 0.30;
-                  };
-                };    
-              };
-
-              if (Math.abs(camera.position.z) > Math.abs(camera.position.x) && Math.abs(camera.position.z) > Math.abs(camera.position.y)) {
-                if (camera.position.z > 0) {
-                  if (oldX - e.clientX < 0) {
-                    intersects[0].object.position.x += 0.30;
-                  } else {
-                    intersects[0].object.position.x -= 0.30;
-                  };
-
-                  if (oldY - e.clientY > 0) {
-                    intersects[0].object.position.y += 0.30;
-                  } else {
-                    intersects[0].object.position.y -= 0.30;
-                  };
-                } else {
-                  if (oldX - e.clientX < 0) {
-                    intersects[0].object.position.x -= 0.30;
-                  } else {
-                    intersects[0].object.position.x += 0.30;
-                  };
-
-                  if (oldY - e.clientY > 0) {
-                    intersects[0].object.position.y += 0.30;
-                  } else {
-                    intersects[0].object.position.y -= 0.30;
-                  };
-                };                
-              };
+              push(intersects[0]);
+      
             };
 
             // update cube position
             // cube.position.set(intersects[0].point.x, intersects[0].point.y, intersects[0].point.z);
 
-            oldX = e.clientX;
-            oldY = e.clientY;
+            
           };
 
         xdir = [];
@@ -372,6 +319,14 @@
         controller = renderer.xr.getController( 0 );
         controller.addEventListener( 'selectstart', function () {
 					controller.userData.isSelecting = true;
+
+          raycaster.setFromXRController( controller );
+
+          const intersects = raycaster.intersectObjects( bubbles.children, false );
+
+          if ( intersects.length > 0 ) {
+            intersects[0].object.visible = false;
+          }
         } );
 				controller.addEventListener( 'selectend', function () {
 					controller.userData.isSelecting = false;
@@ -398,6 +353,14 @@
         controller2 = renderer.xr.getController( 1 );
         controller2.addEventListener( 'selectstart', function () {
 					controller2.userData.isSelecting = true;
+
+          raycaster.setFromXRController( controller );
+
+          const intersects = raycaster.intersectObjects( bubbles.children, false );
+
+          if ( intersects.length > 0 ) {
+            intersects[0].object.visible = false;
+          }
         } );
 				controller2.addEventListener( 'selectend', function () {
 					controller2.userData.isSelecting = false;
@@ -441,6 +404,31 @@
         object.position.z += 0.025 * Math.random() * z_direction;
 
 			}
+
+      function push(from_this_intersection) {
+
+        if (oldX - from_this_intersection.point.x < 0) {
+          from_this_intersection.object.position.x += 0.30;
+        } else {
+          from_this_intersection.object.position.x -= 0.30;
+        };
+
+        if (oldY - from_this_intersection.point.y > 0) {
+          from_this_intersection.object.position.y -= 0.30;
+        } else {
+          from_this_intersection.object.position.y += 0.30;
+        };
+
+        if (oldZ - from_this_intersection.point.z > 0) {
+          from_this_intersection.object.position.z -= 0.30;
+        } else {
+          from_this_intersection.object.position.z += 0.30;
+        };
+
+        oldX = from_this_intersection.point.x;
+        oldY = from_this_intersection.point.y;
+        oldZ = from_this_intersection.point.z;
+      }
 
       function buildController( data ) {
 
@@ -489,9 +477,9 @@
 
 				const intersects = raycaster.intersectObjects( bubbles.children, false );
 
-				if ( intersects.length > 0 && intersects[0].object != ground && intersects[0].object != sky) {
-          intersects[0].object.visible = false;
-				}
+				if ( intersects.length > 0 ) {
+          push(intersects[0]);
+        };
 
 				// if ( red_mixer ) {
 
