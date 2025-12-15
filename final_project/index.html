@@ -462,24 +462,23 @@
 
         if (controller) {
           raycaster.setFromXRController( controller );
-        } else {
-          var pixel_coords = new THREE.Vector2( oldX, oldY );
 
-          var vp_coords = new THREE.Vector2( 
-                      ( pixel_coords.x / window.innerWidth ) * 2 - 1,  //X
-                      -( pixel_coords.y / window.innerHeight ) * 2 + 1) // Y
+          const intersects = raycaster.intersectObjects( bubbles.children, false );
 
-          var vp_coords_near = new THREE.Vector3( vp_coords.x, vp_coords.y, 0);
+          if ( intersects.length > 0 ) {
+            push(intersects[0]);
+          };
+        } 
 
-          raycaster.setFromCamera(vp_coords_near, camera);
+        if (controller2) {
+          raycaster.setFromXRController( controller2 );
+
+          const intersects = raycaster.intersectObjects( bubbles.children, false );
+
+          if ( intersects.length > 0 ) {
+            push(intersects[0]);
+          };
         }
-        
-
-				const intersects = raycaster.intersectObjects( bubbles.children, false );
-
-				if ( intersects.length > 0 ) {
-          push(intersects[0]);
-        };
 
 				// if ( red_mixer ) {
 
