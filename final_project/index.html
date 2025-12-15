@@ -29,7 +29,7 @@
     import {VRButton} from 'three/addons/webxr/VRButton.js';
     import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js'; 
 
-    var scene, camera, renderer, controls, controller, raycaster;
+    var scene, camera, renderer, controls, controller, raycaster, controllerConnected;
 
     var red_light, orange_light, yellow_light, green_light, blue_light, purple_light;
     var red_mixer, orange_mixer, yellow_mixer, green_mixer, blue_mixer, purple_mixer;
@@ -391,6 +391,8 @@
         } );
         controller2.addEventListener( 'connected', function ( event ) {
 
+          controllerConnected = true;
+
 					const targetRayMode = event.data.targetRayMode;
 
 					if ( targetRayMode === 'tracked-pointer' || targetRayMode === 'gaze' ) {
@@ -471,7 +473,7 @@
 
         const delta = clock.getDelta();
 
-        if (controller.userData.isSelecting || controller2.userData.isSelecting) {
+        if (controllerConnected) {
           raycaster.setFromXRController( controller );
         } else {
           var pixel_coords = new THREE.Vector2( oldX, oldY );
@@ -492,41 +494,41 @@
           intersects[0].object.visible = false;
 				}
 
-				if ( red_mixer ) {
+				// if ( red_mixer ) {
 
-					red_mixer.update( delta );
+				// 	red_mixer.update( delta );
 
-				};
+				// };
 
-        if ( orange_mixer ) {
+        // if ( orange_mixer ) {
 
-					orange_mixer.update( delta );
+				// 	orange_mixer.update( delta );
 
-				};
+				// };
 
-        if ( yellow_mixer ) {
+        // if ( yellow_mixer ) {
 
-					yellow_mixer.update( delta );
+				// 	yellow_mixer.update( delta );
 
-				};
+				// };
 
-        if ( green_mixer ) {
+        // if ( green_mixer ) {
 
-					green_mixer.update( delta );
+				// 	green_mixer.update( delta );
 
-				};
+				// };
         
-        if ( blue_mixer ) {
+        // if ( blue_mixer ) {
 
-					blue_mixer.update( delta );
+				// 	blue_mixer.update( delta );
 
-				};
+				// };
 
-        if ( purple_mixer ) {
+        // if ( purple_mixer ) {
 
-					purple_mixer.update( delta );
+				// 	purple_mixer.update( delta );
 
-				};
+				// };
 
         for (var i = 0; i < scene.children.length; i++){
           if (Math.random() < 0.001) {
