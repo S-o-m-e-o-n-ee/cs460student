@@ -2,7 +2,7 @@
   <head>
     <style>
       html, body { 
-        background-color:#ff9ae7;
+        background-color:#000000;
         margin: 0;
         padding: 0;
         height: 100%;
@@ -29,18 +29,63 @@
     import {VRButton} from 'three/addons/webxr/VRButton.js';
     import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js'; 
 
-    var scene, camera, renderer, controls, controller, controller2, raycaster, bubbles;
-
-    var red_light, orange_light, yellow_light, green_light, blue_light, purple_light;
-    var red_mixer, orange_mixer, yellow_mixer, green_mixer, blue_mixer, purple_mixer;
+    var scene, camera, renderer, controls, controller, controller2, raycaster, bubbles, light;
 
     var baseReferenceSpace;
 
     var clock, sky, ground, isSelecting;
 
-    var oldX, oldY, oldZ = 0;
-
     var xdir, ydir, zdir;
+
+    const bubbleUniforms = {
+      uTime: { value: 0 },
+      uDistort: { value: 0.5 }
+    };
+
+    const bubbleMaterial = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(0.9, 0.9, 1.0),
+      transmission: 1.05,
+      thickness: -0.5,
+      roughness: 0,
+      iridescence: 1,
+      iridescenceIOR: 1,
+      iridescenceThicknessRange: [0, 1200],
+      clearcoat: 1,
+      clearcoatRoughness: 0,
+      envMapIntensity: 1.5,
+      transparent: true,
+      opacity: 0.5
+    });
+
+    // Inject vertex distortion
+    bubbleMaterial.onBeforeCompile = (shader) => {
+      shader.uniforms.uTime = bubbleUniforms.uTime;
+      shader.uniforms.uDistort = bubbleUniforms.uDistort;
+
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          '#include <common>',
+          `
+          #include <common>
+
+          uniform float uTime;
+          uniform float uDistort;
+
+          // Simple 3D noise
+          float noise(vec3 p) {
+            return sin(p.x) * sin(p.y) * sin(p.z);
+          }
+          `
+        )
+        .replace(
+          '#include <begin_vertex>',
+          `
+          vec3 transformed = position;
+          float n = noise(normal + uTime * 0.5);
+          transformed += normal * n * uDistort;
+          `
+        );
+    };
 
       window.onload = function() {
         
@@ -77,95 +122,9 @@
         var ambientLight = new THREE.AmbientLight();
         scene.add(ambientLight);
 
-        var light = new THREE.DirectionalLight(0xffffff, 3.0);
+        light = new THREE.DirectionalLight(0xffffff, 3.0);
         light.position.set(10, 100, 10);
         scene.add(light);
-
-        var position_track, clip;
-        
-
-        // // Red light
-        // var red_light = new THREE.SpotLight(0xFF9AB2, 10.0, 0, Math.PI/2);
-        // red_light.position.set(-100, 100, -100);
-        // scene.add(red_light);
-
-        // position_track = new THREE.VectorKeyframeTrack( '.position', [ 0, 1, 2, 4 ], [ -100, 100, -100, -110, 100, -110, -110, 100, -100, -100, 100, -100 ] );
-        // clip = new THREE.AnimationClip( 'Action', 4, [position_track] );
-
-        // red_mixer = new THREE.AnimationMixer( red_light );
-
-        // var clipAction = red_mixer.clipAction( clip );
-				// clipAction.play();
-
-        // // Orange light
-        // var orange_light = new THREE.SpotLight(0xFFC79A, 10.0, 0, Math.PI/2);
-        // orange_light.position.set(-60, 100, -60);
-        // scene.add(orange_light);
-
-        // position_track = new THREE.VectorKeyframeTrack( '.position', [ 0, 1, 2, 4 ], [ -60, 100, -60, -85, 100, -85, -85, 100, -60, -60, 100, -60 ] );
-        // clip = new THREE.AnimationClip( 'Action', 4, [position_track] );
-
-        // orange_mixer = new THREE.AnimationMixer( orange_light );
-
-        // var clipAction = orange_mixer.clipAction( clip );
-				// clipAction.play();
-
-
-        // // Yellow light
-        // var yellow_light = new THREE.SpotLight(0xF8FF9A, 10.0, 0, Math.PI/2);
-        // yellow_light.position.set(-20, 100, -20);
-        // scene.add(yellow_light);
-
-        // position_track = new THREE.VectorKeyframeTrack( '.position', [ 0, 1, 2, 4 ], [ -20, 100, -20, -30, 100, -30, -30, 100, -20, -20, 100, -20 ] );
-        // clip = new THREE.AnimationClip( 'Action', 4, [position_track] );
-
-        // yellow_mixer = new THREE.AnimationMixer( yellow_light );
-
-        // var clipAction = yellow_mixer.clipAction( clip );
-				// clipAction.play();
-
-
-        // // Green light
-        // var green_light = new THREE.SpotLight(0x9AFFA4, 10.0, 0, Math.PI/2);
-        // green_light.position.set(20, 100, 20);
-        // scene.add(green_light);
-
-        // position_track = new THREE.VectorKeyframeTrack( '.position', [ 0, 1, 2, 4 ], [ 20, 100, 20, 10, 100, 10, 10, 100, 20, 20, 100, 20 ] );
-        // clip = new THREE.AnimationClip( 'Action', 4, [position_track] );
-
-        // green_mixer = new THREE.AnimationMixer( green_light );
-
-        // var clipAction = green_mixer.clipAction( clip );
-				// clipAction.play();
-
-
-        // // Blue light
-        // var blue_light = new THREE.SpotLight(0x9ADAFF, 10.0, 0, Math.PI/2);
-        // blue_light.position.set(60, 100, 60);
-        // scene.add(blue_light);
-
-        // position_track = new THREE.VectorKeyframeTrack( '.position', [ 0, 1, 2, 4 ], [ 60, 100, 60, 50, 100, 50, 50, 100, 60, 60, 100, 60 ] );
-        // clip = new THREE.AnimationClip( 'Action', 4, [position_track] );
-
-        // blue_mixer = new THREE.AnimationMixer( blue_light );
-
-        // var clipAction = blue_mixer.clipAction( clip );
-				// clipAction.play();
-
-
-
-        // // Purple light
-        // var purple_light = new THREE.SpotLight(0xF39AFF, 10.0, 0, Math.PI/2);
-        // purple_light.position.set(100, 100, 100);
-        // scene.add(purple_light);
-
-        // position_track = new THREE.VectorKeyframeTrack( '.position', [ 0, 1, 2, 4 ], [ 100, 100, 100, 90, 100, 90, 90, 100, 100, 100, 100, 100 ] );
-        // clip = new THREE.AnimationClip( 'Action', 4, [position_track] );
-
-        // purple_mixer = new THREE.AnimationMixer( purple_light );
-
-        // var clipAction = purple_mixer.clipAction( clip );
-				// clipAction.play();
 
 
 
@@ -190,7 +149,7 @@
         // Ground
         geometry = new THREE.PlaneGeometry( 10000, 10000 );
         material = new THREE.MeshStandardMaterial( {
-          color: new THREE.Color(0.5, 0.5, 1.0), roughness: 0, metalness: 0.25
+          color: new THREE.Color(0.7, 0.7, 1.0), roughness: 0, metalness: 0.25
         });
 
         geometry.rotateX( 3 * Math.PI / 2 );
@@ -217,20 +176,7 @@
           z = (Math.random() * 1000) - 500;
 
           geometry = new THREE.SphereGeometry( radius, 32, 16 );
-          material = new THREE.MeshPhysicalMaterial( {
-            color: new THREE.Color(0.9, 0.9, 1.0), 
-            transmission: 1.05 , 
-            thickness: -0.5 , 
-            roughness: 0 , 
-            iridescence: 1 , 
-            iridescenceIOR: 1 ,
-            iridescenceThicknessRange: [0, 1200] ,
-            clearcoat: 1 ,
-            clearcoatRoughness: 0 , 
-            envMapIntensity: 1.5, 
-            transparent: true, 
-            opacity: 0.5
-          });
+          material = bubbleMaterial;
 
           var sphere = new THREE.Mesh(geometry, material);  
           
@@ -272,6 +218,7 @@
 
             if ( intersects.length > 0 ) {
               intersects[0].object.visible = false;
+              intersects[0].object.removeFromParent();
             };
 
             // update cube position
@@ -295,9 +242,7 @@
             var intersects = raycaster.intersectObjects(bubbles.children);
 
             if ( intersects.length > 0 ) {
-
-              push(intersects[0]);
-      
+              windPush(intersects[0]);
             };
 
             // update cube position
@@ -310,7 +255,7 @@
         ydir = [];
         zdir = [];
 
-        for (var i = 0; i < scene.children.length; i++){
+        for (var i = 0; i < bubbles.children.length; i++){
           xdir.push(1);
           ydir.push(1);
           zdir.push(1);
@@ -326,6 +271,7 @@
 
           if ( intersects.length > 0 ) {
             intersects[0].object.visible = false;
+            intersects[0].object.removeFromParent();
           }
         } );
 				controller.addEventListener( 'selectend', function () {
@@ -354,12 +300,13 @@
         controller2.addEventListener( 'selectstart', function () {
 					controller2.userData.isSelecting = true;
 
-          raycaster.setFromXRController( controller );
+          raycaster.setFromXRController( controller2 );
 
           const intersects = raycaster.intersectObjects( bubbles.children, false );
 
           if ( intersects.length > 0 ) {
             intersects[0].object.visible = false;
+            intersects[0].object.removeFromParent();
           }
         } );
 				controller2.addEventListener( 'selectend', function () {
@@ -405,29 +352,27 @@
 
 			}
 
-      function push(from_this_intersection) {
+      function windPush(from_this_intersection) {
 
-        if (oldX - from_this_intersection.point.x < 0) {
+        var n = from_this_intersection.face.normal.clone();
+
+        if (n.x < 0) {
           from_this_intersection.object.position.x += 0.30;
         } else {
           from_this_intersection.object.position.x -= 0.30;
         };
 
-        if (oldY - from_this_intersection.point.y > 0) {
+        if (n.y > 0) {
           from_this_intersection.object.position.y -= 0.30;
         } else {
           from_this_intersection.object.position.y += 0.30;
         };
 
-        if (oldZ - from_this_intersection.point.z > 0) {
+        if (n.z > 0) {
           from_this_intersection.object.position.z -= 0.30;
         } else {
           from_this_intersection.object.position.z += 0.30;
         };
-
-        oldX = from_this_intersection.point.x;
-        oldY = from_this_intersection.point.y;
-        oldZ = from_this_intersection.point.z;
       }
 
       function buildController( data ) {
@@ -460,13 +405,17 @@
 
         const delta = clock.getDelta();
 
+        var time = clock.getElapsedTime();
+
+        bubbleUniforms.uTime.value = time;
+
         if (controller) {
           raycaster.setFromXRController( controller );
 
           const intersects = raycaster.intersectObjects( bubbles.children, false );
 
           if ( intersects.length > 0 ) {
-            push(intersects[0]);
+             windPush(intersects[0]);
           };
         } 
 
@@ -476,47 +425,15 @@
           const intersects = raycaster.intersectObjects( bubbles.children, false );
 
           if ( intersects.length > 0 ) {
-            push(intersects[0]);
+             windPush(intersects[0]);
           };
         }
 
-				// if ( red_mixer ) {
+				if (light) {
+          light.color.setHSL(((time/100) % 1), 0.7, 0.9);
+        }
 
-				// 	red_mixer.update( delta );
-
-				// };
-
-        // if ( orange_mixer ) {
-
-				// 	orange_mixer.update( delta );
-
-				// };
-
-        // if ( yellow_mixer ) {
-
-				// 	yellow_mixer.update( delta );
-
-				// };
-
-        // if ( green_mixer ) {
-
-				// 	green_mixer.update( delta );
-
-				// };
-        
-        // if ( blue_mixer ) {
-
-				// 	blue_mixer.update( delta );
-
-				// };
-
-        // if ( purple_mixer ) {
-
-				// 	purple_mixer.update( delta );
-
-				// };
-
-        for (var i = 0; i < scene.children.length; i++){
+        for (var i = 0; i < bubbles.children.length; i++){
           if (Math.random() < 0.001) {
             xdir[i] = -xdir[i];
           };
@@ -527,18 +444,18 @@
             zdir[i] = -zdir[i];
           };
 
-          if (Math.abs(scene.children[i].position.x) > 500) {
-            xdir[i] = scene.children[i].position.x > 0 ? -1 : 1;
+          if (Math.abs(bubbles.children[i].position.x) > 500) {
+            xdir[i] = bubbles.children[i].position.x > 0 ? -1 : 1;
           };
-          if (scene.children[i].position.y < 0) {
+          if (bubbles.children[i].position.y < -5) {
             ydir[i] = 1;
           };
-          if (Math.abs(scene.children[i].position.z) > 500) {
-            zdir[i] = scene.children[i].position.z > 0 ? -1 : 1;
+          if (Math.abs(bubbles.children[i].position.z) > 500) {
+            zdir[i] = bubbles.children[i].position.z > 0 ? -1 : 1;
           };
 
-          if (scene.children[i] != ground && scene.children[i] != sky && Math.random() > 0.7){
-            bob(scene.children[i], xdir[i], ydir[i], zdir[i]);
+          if (Math.random() > 0.7){
+            bob(bubbles.children[i], xdir[i], ydir[i], zdir[i]);
           };
         };
 
