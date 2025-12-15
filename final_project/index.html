@@ -29,10 +29,12 @@
     import {VRButton} from 'three/addons/webxr/VRButton.js';
     import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js'; 
 
-    var scene, camera, renderer, controls, controller, raycaster, controllerConnected;
+    var scene, camera, renderer, controls, controller, controller2, raycaster, bubbles;
 
     var red_light, orange_light, yellow_light, green_light, blue_light, purple_light;
     var red_mixer, orange_mixer, yellow_mixer, green_mixer, blue_mixer, purple_mixer;
+
+    var baseReferenceSpace;
 
     var clock, sky, ground, isSelecting;
 
@@ -202,6 +204,9 @@
 
         // Bubbles
 
+        bubbles = new THREE.Group();
+        scene.add(bubbles);
+
         var radius, x, y, z;
 
         for (var i = 0; i < 4000; i++) {
@@ -231,11 +236,19 @@
           
           sphere.position.set(x, y, z);
 
-          scene.add(sphere);
+          bubbles.add(sphere);
         };
     
         // Setup interaction
         controls = new OrbitControls(camera, renderer.domElement);
+
+        renderer.xr.addEventListener('sessionstart', () => {
+          controls.enabled = false;
+        });
+
+        renderer.xr.addEventListener('sessionend', () => {
+          controls.enabled = true;
+        });
 
         raycaster = new THREE.Raycaster();
 
@@ -255,7 +268,7 @@
 
             raycaster.setFromCamera(vp_coords_near, camera);
 
-            var intersects = raycaster.intersectObjects(scene.children);
+            var intersects = raycaster.intersectObjects(bubbles.children);
 
             if ( intersects.length > 0 && intersects[0].object != ground && intersects[0].object != sky) {
               intersects[0].object.visible = false;
@@ -279,7 +292,7 @@
 
             raycaster.setFromCamera(vp_coords_near, camera);
 
-            var intersects = raycaster.intersectObjects(scene.children);
+            var intersects = raycaster.intersectObjects(bubbles.children);
 
             if ( intersects.length > 0 && intersects[0].object != ground && intersects[0].object != sky) {
               if (Math.abs(camera.position.x) > Math.abs(camera.position.y) && Math.abs(camera.position.x) > Math.abs(camera.position.z)) {
@@ -356,7 +369,7 @@
           zdir.push(1);
         };
 
-        var controller = renderer.xr.getController( 0 );
+        controller = renderer.xr.getController( 0 );
         controller.addEventListener( 'selectstart', function () {
 					controller.userData.isSelecting = true;
         } );
@@ -382,7 +395,7 @@
         scene.add(controller);
 
 
-        var controller2 = renderer.xr.getController( 1 );
+        controller2 = renderer.xr.getController( 1 );
         controller2.addEventListener( 'selectstart', function () {
 					controller2.userData.isSelecting = true;
         } );
@@ -390,8 +403,6 @@
 					controller2.userData.isSelecting = false;
         } );
         controller2.addEventListener( 'connected', function ( event ) {
-
-          controllerConnected = true;
 
 					const targetRayMode = event.data.targetRayMode;
 
@@ -408,21 +419,9 @@
 
 				} );
         scene.add(controller2);
-
-
-
-        var controllerModelFactory = new XRControllerModelFactory();
-
-				var controllerGrip = renderer.xr.getControllerGrip( 0 );
-				controllerGrip.add( controllerModelFactory.createControllerModel( controllerGrip ) );
-				scene.add( controllerGrip );
-
-        var controllerGrip2 = renderer.xr.getControllerGrip( 1 );
-				controllerGrip2.add( controllerModelFactory.createControllerModel( controllerGrip2 ) );
-				scene.add( controllerGrip2 );
         
         // call animation/rendering loop
-        animate();
+        renderer.setAnimationLoop(animate);
         
       };
 
@@ -473,7 +472,7 @@
 
         const delta = clock.getDelta();
 
-        if (controllerConnected) {
+        if (controller) {
           raycaster.setFromXRController( controller );
         } else {
           var pixel_coords = new THREE.Vector2( oldX, oldY );
@@ -488,7 +487,7 @@
         }
         
 
-				const intersects = raycaster.intersectObjects( scene.children, false );
+				const intersects = raycaster.intersectObjects( bubbles.children, false );
 
 				if ( intersects.length > 0 && intersects[0].object != ground && intersects[0].object != sky) {
           intersects[0].object.visible = false;
@@ -541,22 +540,20 @@
             zdir[i] = -zdir[i];
           };
 
-          if (Math.abs(scene.children[i].x) > 500) {
-            xdir[i] = scene.children[i].x > 0 ? -1 : 1;
+          if (Math.abs(scene.children[i].position.x) > 500) {
+            xdir[i] = scene.children[i].position.x > 0 ? -1 : 1;
           };
-          if (scene.children[i].y < 0) {
+          if (scene.children[i].position.y < 0) {
             ydir[i] = 1;
           };
-          if (Math.abs(scene.children[i].z) > 500) {
-            zdir[i] = scene.children[i].z > 0 ? -1 : 1;
+          if (Math.abs(scene.children[i].position.z) > 500) {
+            zdir[i] = scene.children[i].position.z > 0 ? -1 : 1;
           };
 
           if (scene.children[i] != ground && scene.children[i] != sky && Math.random() > 0.7){
             bob(scene.children[i], xdir[i], ydir[i], zdir[i]);
           };
         };
-
-        renderer.setAnimationLoop(animate);
 
         // ... update renderer + controls
         controls.update();
