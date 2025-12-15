@@ -369,14 +369,14 @@
 
 					if ( targetRayMode === 'tracked-pointer' || targetRayMode === 'gaze' ) {
 
-						this.add( buildController( event.data ) );
+						controller.add( buildController( event.data ) );
 
 					}
 
 				} );
 				controller.addEventListener( 'disconnected', function () {
 
-					this.remove( this.children[ 0 ] );
+					controller.remove( controller.children[ 0 ] );
 
 				} );
         scene.add(controller);
@@ -395,14 +395,14 @@
 
 					if ( targetRayMode === 'tracked-pointer' || targetRayMode === 'gaze' ) {
 
-						this.add( buildController( event.data ) );
+						controller2.add( buildController( event.data ) );
 
 					}
 
 				} );
 				controller2.addEventListener( 'disconnected', function () {
 
-					this.remove( this.children[ 0 ] );
+					controller2.remove( controller2.children[ 0 ] );
 
 				} );
         scene.add(controller2);
