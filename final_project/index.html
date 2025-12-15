@@ -471,7 +471,7 @@
 
         const delta = clock.getDelta();
 
-        if (controller) {
+        if (controller.userData.isSelecting || controller2.userData.isSelecting) {
           raycaster.setFromXRController( controller );
         } else {
           var pixel_coords = new THREE.Vector2( oldX, oldY );
